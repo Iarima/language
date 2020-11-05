@@ -1,0 +1,139 @@
+---
+title: "Effect of language on behavior"
+author: "Ali Malek"
+date: "11/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE,message=FALSE,results='hide'}
+library(foreign)
+library(tidyverse)
+library(ggthemes)
+```
+
+# A few words
+
+Linguists have been studying the effect of language on different aspects of human behavior for years. This theory has been coined after the famous Benjamin Lee Whorf and it has been studied and debated extensively in the field. My intrigue in this theory goes a long way back to the time when I imagined my future self as a linguist. Anyway, I ended up studying economics.
+One day I saw this beautiful paper by prof. Keith Chen from UCLA's Anderson School of Management that was titled "The Effect of Language on Economic Behavior: Evidence from Savings Rates, Health Behaviors, and Retirement Assets". Chen, building on the works of previous linguists who had worked on the idea, gave this theory an economic edge.
+What I am gonna do in this short document is not a reinvention of the wheel but rather a data analytic view of the matter and present the data easily and understandably.
+
+The data on language used in this document, made or fine tuned by prof. Chen is publicly available under CC license and can be accessed via the following link.
+<https://www.openicpsr.org/openicpsr/project/116114/version/V1/view?path=/openicpsr/116114/fcr:versions/V1>
+
+For economic data, I have used World Bank data under the World Development Indicators and Adjusted Net Savings.
+<https://www.databank.worldbank.org>
+
+# Introduction
+
+So what's the idea in a nutshell? Whorf's theory says different structures of different languages shape how their speakers perceive and conceptualize the world in which they live. For example, if there's no word to describe a specific color in a language its speakers can't recognize or remember those colors.
+This is the general idea. So, how does it translate into behavioral economics? It has been shown that languages can be classified either as "futured languages" or "futureless languages". For example, English is a futured language and you say a phrase like "I will go." And so is Persian. But in a futureless language like Japanese, you can't say such a phrase because there's no future verbs or future structures. If you want to say "I will go", you have to say "I go" and it is a timeless verb. The theorem is that people who have a futureless language conceive no difference between current and future. Time is a continuous and concrete concept and there is no difference between now and then. On the other hand in a futured language time is a sporadic and disjoint concept. Tomorrow is a long distance away from today. Therefore being required to speak in a distinct way about future events leads speakers to take fewer future-oriented actions.
+
+## A Macro Insight
+
+The first index which we will explore is the saving rates of some countries. The countries which have a strong-FTR (futured) language as the dominant language are colored with blue. Countries with a weak-FTR (futureless) language as the dominant language are colored with blue. As can be seen in the barplot below, there's a considerable difference between saving rates of countries with a strong-FTR and weak-FTR language. On average, countries with weak-FTR countries are likely to save about 8 percent more than the strong-FTR countries. And you need not to be an economist to understand how important is savings rate for the growth of a country!
+
+```{r echo=FALSE}
+countries <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/Countries_Data_File.dta")
+africa <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/DHS_Data_File.dta")
+OECD_Data_File <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/OECD_Data_File.dta")
+Countries_Data_File <-read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/Countries_Data_File.dta")
+Languages_Data_File <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/Languages_Data_File.dta")
+SHARE_Data_File.dta <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/SHARE_Data_File.dta")
+WDI_Data_File <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/WDI_Data_File.dta")
+conversion <- read.dta("C://Users/Arima/Downloads/Compressed/116114-V1/Datasets_Programs_and_Readme/Country_Conversion_Codes_Data_File.dta")
+
+savings <- read.csv("C://Users/Arima/Downloads/Compressed/Data_Extract_From_Adjusted_Net_Savings/1337bc97-2b94-46ff-9be5-d99341865d37_Data.csv",stringsAsFactors = TRUE)
+savings <- savings[,c(1,2,12)]
+colnames(savings) <- c("country","code","value")
+savings$country <- as.factor(savings$country)
+savings$value <- as.numeric(savings$value)
+savings <- left_join(savings,countries,by = c("country" = "country"))
+savings$prediction_ftr[savings$country == "Switzerland"] <- 0
+savings$prediction_ftr[savings$country == "Belgium"] <- 0
+savings$prediction_ftr <- as.factor(savings$prediction_ftr)
+
+```
+
+```{r fig.width=10,fig.height=8}
+savings %>% filter( is.na(prediction_ftr) != TRUE) %>% ggplot(aes(x = reorder(country,-value),y= value, fill = prediction_ftr)) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_economist()  +
+  xlab("Country") +
+  ylab("Saving Rate") +
+  ggtitle("Average Savings Rate (% GDP) 2016")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1), legend.position = "none",axis.title = element_text(face = "bold",size = 14)) 
+  
+```
+
+And now let's see if GDP is the same.
+
+```{r echo=FALSE,warning=FALSE}
+gdp <- read.csv("C://Users/Arima/Downloads/Compressed/Data_Extract_From_World_Development_Indicators/9bf9ef5a-dcee-4b30-aa85-c284c0675f6d_Data.csv")
+gdp <- gdp[,c(1,2,10)]
+colnames(gdp) <- c("country","code","gdp")
+gdp$gdp <- as.numeric(gdp$gdp)
+gdp$country <- as.factor(gdp$country)
+gdp <- left_join(gdp,countries,by = c("country" = "country"))
+gdp$prediction_ftr[gdp$country == "Switzerland"] <- 0
+gdp$prediction_ftr[gdp$country == "Belgium"] <- 0
+gdp$prediction_ftr <- as.factor(gdp$prediction_ftr)
+```
+```{r fig.width=10,fig.height=8}
+gdp %>% filter( is.na(prediction_ftr) != TRUE) %>% ggplot(aes(x = reorder(country,-gdp),y= log(gdp), fill = prediction_ftr)) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_economist()  +
+  xlab("Country") +
+  ylab("Log(GDP)") +
+  ggtitle("Log of GDP 2016")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1), legend.position = "none",axis.title = element_text(face = "bold",size = 14)) 
+
+```
+
+On average, weak-FTR countries have 500 billion dollar more GDP than the strong-FTR countries. So, our theorem still seems promising!
+
+## A Micro Insight
+
+Now, let's see how people react to different language structures in their everyday life. 
+
+### Obesity
+
+It seems crazy that language affects human obesity, right? So let's see.
+
+```{r fig.width=10,fig.height=8}
+SHARE_Data_File.dta$prediction_ftr <- as.factor(SHARE_Data_File.dta$prediction_ftr)
+SHARE_Data_File.dta %>% filter(is.na(bmi2)!= TRUE) %>% ggplot(aes(x=bmi2,fill= prediction_ftr)) +
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette = "Set1") +
+  theme_economist()  +
+  theme(axis.title = element_text(face = "bold",size = 14)) +
+  xlab("BMI") +
+  ylab("Share") +
+  labs(fill = "StrongFTR")
+```
+
+And, yeah! StrongFTR speakers are 13 percent more likely to be medically obese, a reduction in grip strength of almost a kilogram, and a reduction in peak expiratory flow of 16 liters per minute. But obesity is not the most interesting thing. 
+Regression results indicates that a strongly grammaticalized FTR leads to a 24 percent higher probability of having ever smoked. Also it indicates that a strongFTR language leads to a 29 percent lower probability of being physically active.  
+
+These data are gathered from 13 european countries. Let's see if these facts hold up in other spatial locations.
+SHARE data, gathered from african countries, shows that language is a determining factor everywhere.
+
+```{r fig.width=10,fig.height=8}
+africa$StrongFTR <- as.factor(africa$StrongFTR)
+africa$Smokes <- as.factor(africa$Smokes)
+africa %>% filter(is.na(StrongFTR)!= TRUE) %>% ggplot(aes(x=StrongFTR,y=Smokes)) +
+  geom_bar(stat = "identity",fill = "brown1") +
+  theme_economist() 
+```
+
+Speaking a strong-FTR language is associated with a 20 percent greater likelihood of smoking, and a 17 percent greater likelihood of being obese. People who speak a strongFTR language on average have a saving rate of 11 percent. This number is 30 percent for weakFTR speakers. This fact even holds up in the same neighbourhoods of a country.
+
+# Conclusion
+
+Overall, prof. Chen's findings are largely consistent with the hypothesis that languages with obligatory future-time reference lead their speakers to engage in less future-oriented behavior. On savings, the evidence is consistent on multiple levels: at an individual’s propensity to save, to long-run effects on retirement wealth, and in national savings rates. These findings extend to health behaviors ranging from smoking to being physically active. All of these results survive after comparing only individuals who are identical in numerous ways and were born and raised in the same country.
+One important issue in interpreting these results is the possibility that language is not causing but rather reflecting deeper differences that drive savings behavior. But Chen shows that measured effects he finds are causal. I will not go deeper into the discussion but I encourage you to read prof. Chen's paper if you are interested.
